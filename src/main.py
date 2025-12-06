@@ -11,9 +11,11 @@ piexifCodecsToConvert = [k.casefold() for k in ['TIF', 'TIFF']]
 piexifCodecsToRename = [k.casefold() for k in ['JPEG']]
 videoCodecs = [k.casefold() for k in ['MP4', 'MOV']]
     
+DEFAULT_FOLDER = "/home/florian/DataPartition/Takeout-2025-11-30"
+
 def process(browserPath, editedW, convertAll, convertIfNeeded):    
     mediaMoved = []  # array with names of all the media already matched
-    path = browserPath  # source path
+    path = browserPath or DEFAULT_FOLDER # source path
     fixedMediaPath = path + "/MatchedMedia"  # destination path
     nonEditedMediaPath = path + "/EditedRaw"
     errorCounter = 0
@@ -23,27 +25,47 @@ def process(browserPath, editedW, convertAll, convertIfNeeded):
     convertIfNeeded = convertIfNeeded or True
 
     try:
-        obj = list(os.scandir(path))  #Convert iterator into a list to sort it
-        obj.sort(key=lambda s: len(s.name)) #Sort by length to avoid name(1).jpg be processed before name.jpg
         createFolders(fixedMediaPath, nonEditedMediaPath)
     except Exception as e:
         print("Error: Choose a valid directory: " + path)
         return
 
-    for entry in obj:
-        if entry.is_file() and entry.name.endswith(".json"):  # Check if file is a JSON
-            with open(entry, encoding="utf8") as f:  # Load JSON into a var
-                data = json.load(f)
+    json_files = []
+    for dirpath, _, filenames in os.walk(path):
+        if dirpath == fixedMediaPath or dirpath == nonEditedMediaPath:
+            continue
+        for filename in filenames:
+            if filename.endswith(".json"):
+                json_files.append(os.path.join(dirpath, filename))
 
-            progress = round(obj.index(entry)/len(obj)*100, 2)
+    json_files.sort(key=lambda s: len(os.path.basename(s)))
+
+    total_files = len(json_files)
+    for i, json_path in enumerate(json_files):
+            dirpath = os.path.dirname(json_path)
+            json_filename = os.path.basename(json_path)
+            with open(json_path, encoding="utf8") as f:  # Load JSON into a var
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    print(f"Warning: Could not decode JSON from {json_path}. Skipping.")
+                    continue
+
+            progress = round((i + 1) / total_files * 100, 2)
             print(str(progress) + "%")
 
-            #SEARCH MEDIA ASSOCIATED TO JSON
-
+            if 'title' not in data:
+                print(f"Warning: Skipping {json_path} because it does not contain a 'title' field.")
+                continue
             titleOriginal = data['title']  # Store metadata into vars
+            if isinstance(titleOriginal, list):
+                if len(titleOriginal) > 0:
+                    titleOriginal = str(titleOriginal[0])
+                else:
+                    titleOriginal = "Unknown"
 
             try:
-                result = searchMedia(path, titleOriginal, mediaMoved, nonEditedMediaPath, editedWord)
+                result = searchMedia(dirpath, titleOriginal, mediaMoved, nonEditedMediaPath, editedWord)
                 title = result[0]
                 movedTitle = result[1]
                 movedFilePath = result[2]
@@ -53,7 +75,7 @@ def process(browserPath, editedW, convertAll, convertIfNeeded):
                 errorCounter += 1
                 continue
 
-            filepath = path + "/" + title
+            filepath = dirpath + "/" + title
             if title == "None":
                 print("Error: " + titleOriginal + " not found")
                 errorCounter += 1
@@ -67,7 +89,7 @@ def process(browserPath, editedW, convertAll, convertIfNeeded):
             
             #MOVE FILE AND DELETE JSON
             os.replace(filepath, fixedMediaPath + "/" + title)
-            os.remove(path + "/" + entry.name)
+            os.remove(json_path)
             mediaMoved.append(title)
             successCounter += 1
             
@@ -176,14 +198,18 @@ def convertToJpg(filepath, filePathName, title):
             return None
         
         # Save img
-        im.save(filepath, format='jpeg', exif=im.getexif())
+        try:
+            im.save(filepath, format='jpeg', exif=im.getexif())
+        except Exception:
+            print(f"Warning: Could not preserve EXIF for {title}, saving without EXIF.")
+            im.save(filepath, format='jpeg')
         
         #rgb_im = im.convert('RGB')
         #rgb_im.save(filepath)
         
         return filepath
-    except ValueError as e:
-        print("Error converting to JPG in " + title)
+    except Exception as e:
+        print("Error converting to JPG in " + title + ": " + str(e))
         return None
 
 def renameToJpg(filepath, filePathName, title):
@@ -225,7 +251,9 @@ def showErrorAndLegend():
     print("  [convert_if_needed]   (Optional) Convert images to JPG if metadata editing fails. Default: True.\n\n")
 
 def readArgs():
-    folder = sys.argv[1]
+    folder = None
+    if len(sys.argv) > 1:
+        folder = sys.argv[1]
     
     editedW = sys.argv[2] if len(sys.argv) > 2 else None
 
@@ -246,12 +274,8 @@ def readArgs():
     return [folder, editedW, convertAll, convertIfNeeded]
 
 def appInit():
-    if len(sys.argv) > 1:
-        [folder,editedW, convertAll, convertIfNeeded] = readArgs()
-        showAppHeader(folder, editedW, convertAll, convertIfNeeded)
-        process(folder, editedW, convertAll, convertIfNeeded)
-    else:
-        showErrorAndLegend()
-        return
+    [folder, editedW, convertAll, convertIfNeeded] = readArgs()
+    showAppHeader(folder, editedW, convertAll, convertIfNeeded)
+    process(folder, editedW, convertAll, convertIfNeeded)
         
-appInit()
+appInit()                                                        

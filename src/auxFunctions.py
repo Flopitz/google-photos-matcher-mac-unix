@@ -9,7 +9,14 @@ import piexif
 from fractions import Fraction
 from exiftool import ExifToolHelper
 
-et=ExifToolHelper()
+et = None
+
+def get_exiftool():
+    """Initializes and returns a singleton ExifToolHelper instance."""
+    global et
+    if et is None:
+        et = ExifToolHelper()
+    return et
 
 # Function to search media associated to the JSON
 def searchMedia(path, title, mediaMoved, nonEdited, editedWord):    
@@ -194,14 +201,14 @@ def set_Images_EXIF(filepath, lat, lng, altitude, timeStamp):
         pass    
 
 
-def set_QuickTime_Video_EXIF(filepath, lat, lng, altitude):
+def set_QuickTime_Video_EXIF(filepath, lat, lng, altitude):    
     try:
         updates = []
         
         # Update Video GPS Exif Data (Android encoding) if missing
         videoMetadata = get_Video_GPS_Tag(filepath, "ItemList")
         if is_New_GPS_Valid(altitude, lat, lng) and is_Existing_Video_GPS_Tag_Inconsistent(videoMetadata):
-            set_Video_GPS_Tag(filepath, "ItemList", lat, lng, altitude)
+            set_Video_GPS_Tag(filepath, "ItemList", lat, lng, altitude)            
             updates.append('Android')
 
         # Update Video GPS Exif Data (Apple encoding) if missing
@@ -216,14 +223,14 @@ def set_QuickTime_Video_EXIF(filepath, lat, lng, altitude):
         print("Warning: Video coordinates not settled")
 
 def get_Video_GPS_Tag(filepath, tag):
-    return et.get_tags(
+    return get_exiftool().get_tags(
         [filepath],
         tags={"QuickTime:" + tag + ":GPSCoordinates"},
         params=["-g0:1"]
     )
 
 def set_Video_GPS_Tag(filepath, tag, lat, lng, altitude):
-    et.set_tags(
+    get_exiftool().set_tags(
         [filepath],
         tags={"QuickTime:" + tag + ":GPSCoordinates": str(lat) + " " + str(lng) + " " + str(altitude)},
         params=["-overwrite_original"]
@@ -284,4 +291,3 @@ def fixExifInt(exif, key, fixesDone):
     
     if fixed:
         fixesDone.append(str(key))
-
