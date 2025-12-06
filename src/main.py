@@ -88,7 +88,7 @@ def process(browserPath, editedW, convertAll, convertIfNeeded):
                 continue
             
             #MOVE FILE AND DELETE JSON
-            os.replace(filepath, fixedMediaPath + "/" + title)
+            # os.replace(filepath, fixedMediaPath + "/" + title)
             os.remove(json_path)
             mediaMoved.append(title)
             successCounter += 1
@@ -113,7 +113,7 @@ def process(browserPath, editedW, convertAll, convertIfNeeded):
                     if updateFileMetadata(data, mp4FilePath, mp4Title, False, False) is None:
                         errorCounter += 1
                     else:
-                        os.replace(mp4FilePath, fixedMediaPath + "/" + mp4Title)
+                        # os.replace(mp4FilePath, fixedMediaPath + "/" + mp4Title)
                         successCounter += 1
 
             

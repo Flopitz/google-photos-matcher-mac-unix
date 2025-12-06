@@ -55,23 +55,23 @@ def searchMedia(path, title, mediaMoved, nonEdited, editedWord):
                         else:
                             # Move original media to another folder
                             movedTitle = title
-                            movedFilePath = getNonEditedFilePath(title)
-                            os.replace(getOriginalFilePath(title), movedFilePath)
+                            movedFilePath = getOriginalFilePath(title)
+                            # os.replace(getOriginalFilePath(title), movedFilePath)
                     else:
                         # Move original media to another folder
                         movedTitle = title
-                        movedFilePath = getNonEditedFilePath(title)
-                        os.replace(getOriginalFilePath(title), movedFilePath)
+                        movedFilePath = getOriginalFilePath(title)
+                        # os.replace(getOriginalFilePath(title), movedFilePath)
         else:
             # Move original media to another folder
             movedTitle = title
-            movedFilePath = getNonEditedFilePath(title)
-            os.replace(getOriginalFilePath(title), movedFilePath)
+            movedFilePath = getOriginalFilePath(title)
+            # os.replace(getOriginalFilePath(title), movedFilePath)
     else:
         # Move original media to another folder
         movedTitle = title
-        movedFilePath = getNonEditedFilePath(title)
-        os.replace(getOriginalFilePath(title), movedFilePath)
+        movedFilePath = getOriginalFilePath(title)
+        # os.replace(getOriginalFilePath(title), movedFilePath)
 
     return [str(realTitle), str(movedTitle), str(movedFilePath)]
 
