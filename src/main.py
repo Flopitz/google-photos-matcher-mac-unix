@@ -12,7 +12,12 @@ piexifCodecsToConvert = [k.casefold() for k in ['TIF', 'TIFF']]
 piexifCodecsToRename = [k.casefold() for k in ['JPEG']]
 videoCodecs = [k.casefold() for k in ['MP4', 'MOV']]
     
-DEFAULT_FOLDER = "/home/florian/DataPartition/Takeout-2025-11-30/Takeout/"
+try:
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'DEFAULT_FOLDER.txt'), 'r') as f:
+        DEFAULT_FOLDER = f.readline().strip()
+except Exception:
+    DEFAULT_FOLDER = None
+
 
 def process(browserPath, editedW, convertAll, convertIfNeeded):    
     mediaMoved = []  # array with names of all the media already matched
