@@ -12,7 +12,7 @@ piexifCodecsToConvert = [k.casefold() for k in ['TIF', 'TIFF']]
 piexifCodecsToRename = [k.casefold() for k in ['JPEG']]
 videoCodecs = [k.casefold() for k in ['MP4', 'MOV']]
     
-DEFAULT_FOLDER = "/home/florian/DataPartition/Takeout-2025-11-30"
+DEFAULT_FOLDER = "/home/florian/DataPartition/Takeout-2025-11-30/Takeout/"
 
 def process(browserPath, editedW, convertAll, convertIfNeeded):    
     mediaMoved = []  # array with names of all the media already matched
@@ -24,12 +24,6 @@ def process(browserPath, editedW, convertAll, convertIfNeeded):
     editedWord = editedW or "edited"
     convertAll = convertAll or False
     convertIfNeeded = convertIfNeeded or True
-
-    try:
-        createFolders(fixedMediaPath, nonEditedMediaPath)
-    except Exception as e:
-        print("Error: Choose a valid directory: " + path)
-        return
 
     # Setup logging
     log_file = os.path.join(path, "google_photos_matcher.log")
