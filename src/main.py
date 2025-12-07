@@ -5,6 +5,7 @@ from auxFunctions import *
 import json
 from PIL import Image
 import sys
+import logging
 
 piexifCodecs = [k.casefold() for k in ['TIF', 'TIFF', 'JPEG', 'JPG']]
 piexifCodecsToConvert = [k.casefold() for k in ['TIF', 'TIFF']]
@@ -30,6 +31,22 @@ def process(browserPath, editedW, convertAll, convertIfNeeded):
         print("Error: Choose a valid directory: " + path)
         return
 
+    # Setup logging
+    log_file = os.path.join(path, "google_photos_matcher.log")
+    
+    # Reset handlers to avoid duplicate logs if run multiple times in same session (unlikely but safe)
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+        
+    logging.basicConfig(
+        filename=log_file,
+        filemode='a',
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        level=logging.WARNING
+    )
+    
+    print(f"Logging errors to: {log_file}")
+
     json_files = []
     for dirpath, _, filenames in os.walk(path):
         if dirpath == fixedMediaPath or dirpath == nonEditedMediaPath:
@@ -48,14 +65,18 @@ def process(browserPath, editedW, convertAll, convertIfNeeded):
                 try:
                     data = json.load(f)
                 except json.JSONDecodeError:
-                    print(f"Warning: Could not decode JSON from {json_path}. Skipping.")
+                    msg = f"Warning: Could not decode JSON from {json_path}. Skipping."
+                    print(msg)
+                    logging.warning(msg)
                     continue
 
             progress = round((i + 1) / total_files * 100, 2)
             print(str(progress) + "%")
 
             if 'title' not in data:
-                print(f"Warning: Skipping {json_path} because it does not contain a 'title' field.")
+                msg = f"Warning: Skipping {json_path} because it does not contain a 'title' field."
+                print(msg)
+                logging.warning(msg)
                 continue
             titleOriginal = data['title']  # Store metadata into vars
             if isinstance(titleOriginal, list):
@@ -71,25 +92,36 @@ def process(browserPath, editedW, convertAll, convertIfNeeded):
                 movedFilePath = result[2]
 
             except Exception as e:
-                print("Error on searchMedia() with file " + titleOriginal)
+                msg = "Error on searchMedia() with file " + titleOriginal
+                print(msg)
+                logging.error(msg, exc_info=True)
                 errorCounter += 1
                 continue
 
             filepath = dirpath + "/" + title
             if title == "None":
-                print("Error: " + titleOriginal + " not found")
+                msg = "Error: " + titleOriginal + " not found"
+                print(msg)
+                logging.error(msg)
                 errorCounter += 1
                 continue
             
             # TARGET MEDIA METADATA EDIT
             filepath = updateFileMetadata(data, filepath, title, convertAll, convertIfNeeded)
             if filepath is None:
+                logging.error(f"Failed to update metadata for {titleOriginal}")
                 errorCounter += 1
                 continue
             
             #MOVE FILE AND DELETE JSON
             # os.replace(filepath, fixedMediaPath + "/" + title)
-            os.remove(json_path)
+            try:
+                os.remove(json_path)
+            except OSError as e:
+                msg = f"Error deleting JSON {json_path}: {e}"
+                print(msg)
+                logging.error(msg)
+                
             mediaMoved.append(title)
             successCounter += 1
             
@@ -166,8 +198,9 @@ def updateFileMetadata(data, filepath, title, convertAll, convertIfNeeded):
         
         # Error handler
         if not error is None:
-            print("Error: Inexistent EXIF data for " + filepath)
-            print(str(error))
+            msg = "Error: Inexistent EXIF data for " + filepath + ": " + str(error)
+            print(msg)
+            logging.error(msg)
             return None
     
     if fileExtension in videoCodecs:  # If Video Codec is detected try to set gps exif with exiftool if needed
@@ -201,7 +234,9 @@ def convertToJpg(filepath, filePathName, title):
         try:
             im.save(filepath, format='jpeg', exif=im.getexif())
         except Exception:
-            print(f"Warning: Could not preserve EXIF for {title}, saving without EXIF.")
+            msg = f"Warning: Could not preserve EXIF for {title}, saving without EXIF."
+            print(msg)
+            logging.warning(msg)
             im.save(filepath, format='jpeg')
         
         #rgb_im = im.convert('RGB')
@@ -209,7 +244,9 @@ def convertToJpg(filepath, filePathName, title):
         
         return filepath
     except Exception as e:
-        print("Error converting to JPG in " + title + ": " + str(e))
+        msg = "Error converting to JPG in " + title + ": " + str(e)
+        print(msg)
+        logging.error(msg)
         return None
 
 def renameToJpg(filepath, filePathName, title):
@@ -219,7 +256,9 @@ def renameToJpg(filepath, filePathName, title):
         filepath = filePathName + ".jpg"
         return filepath
     except ValueError as e:
-        print("Error renaming to JPG in " + title)
+        msg = "Error renaming to JPG in " + title
+        print(msg)
+        logging.error(msg)
         return None
 
 

@@ -8,6 +8,7 @@ from datetime import datetime
 import piexif
 from fractions import Fraction
 from exiftool import ExifToolHelper
+import logging
 
 et = None
 
@@ -197,7 +198,9 @@ def set_Images_EXIF(filepath, lat, lng, altitude, timeStamp):
             if len(updated) > 0:
                 print("Image GPS Data " + action + " for: " + filepath + " (" + ", ".join(updated) + ")")        
     except Exception as e:
-        print("Warning: Image coordinates not settled")
+        msg = f"Warning: Image coordinates not settled for {filepath}: {e}"
+        print(msg)
+        logging.warning(msg)
         pass    
 
 
@@ -220,7 +223,9 @@ def set_QuickTime_Video_EXIF(filepath, lat, lng, altitude):
         if len(updates) > 0:
             print("Video Exif updated (" + ", ".join(updates) + ")")
     except Exception as e:
-        print("Warning: Video coordinates not settled")
+        msg = f"Warning: Video coordinates not settled for {filepath}: {e}"
+        print(msg)
+        logging.warning(msg)
 
 def get_Video_GPS_Tag(filepath, tag):
     return get_exiftool().get_tags(
@@ -266,7 +271,9 @@ def fixExif(exif):
     fixExifInt(exif, 41729, fixesDone)
     
     if len(fixesDone) > 0:
-        print("Warning: Fixed Exif (" + ", ".join(fixesDone) + ")")
+        msg = "Warning: Fixed Exif (" + ", ".join(fixesDone) + ")"
+        print(msg)
+        logging.warning(msg)
         
     return exif
 
